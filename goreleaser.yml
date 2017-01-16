@@ -1,0 +1,12 @@
+# Build customization
+build:
+  main: ./main.go
+  ldflags: -s -w
+  gogs:
+    - darwin
+    - linux
+  goarch:
+    - amd64
+  files:
+    - README.md
+    - LICENSE
