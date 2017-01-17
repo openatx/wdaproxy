@@ -7,4 +7,6 @@ build:
 brew:
   repo: openatx/homebrew-tap
   folder: Formula
+  dependencies:
+    - libimobiledevice
     
