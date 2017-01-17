@@ -2,3 +2,9 @@
 build:
   goarch:
     - amd64
+  goos:
+    - darwin
+brew:
+  repo: openatx/homebrew-tap
+  folder: Formula
+    
