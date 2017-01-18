@@ -1,0 +1,6 @@
+hash: 266201fc72732d58ed1bd5b967040307c06f04a2a17d8081f9bd6546258fcebc
+updated: 2017-01-18T14:09:23.564250209+08:00
+imports:
+- name: github.com/facebookgo/freeport
+  version: d4adf43b75b9357dc7775f033e807a3411591522
+testImports: []

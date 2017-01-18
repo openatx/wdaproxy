@@ -6,7 +6,8 @@ Only can work in Mac
 
 # Usage
 ```
-brew install openatx/tap/wdaproxy
+$ brew install openatx/tap/wdaproxy
+$ wdaproxy -p 8100 -u $UDID
 ```
 
 

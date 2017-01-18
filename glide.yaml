@@ -1,0 +1,3 @@
+package: github.com/openatx/wdaproxy
+import:
+- package: github.com/facebookgo/freeport
