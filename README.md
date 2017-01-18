@@ -6,8 +6,9 @@ Only can work in Mac
 
 # Usage
 ```
-brew install libimobiledevice
+brew install openatx/tap/wdaproxy
 ```
+
 
 # LICENSE
 Under [MIT](LICENSE)
