@@ -3,15 +3,3 @@ go:
 - 1.7.x
 after_success: test -n "$TRAVIS_TAG" && curl -s https://raw.githubusercontent.com/goreleaser/get/master/latest
   | bash
-before_deploy:
-  if [ ! -z "$TRAVIS_TAG" ]; then
-    go get -v github.com/gobuild/gopack
-    gopack --os "darwin" --arch "amd64"
-  fi
-deploy:
-  provider: releases
-  api_key:
-    secure: EcbYlZcZGFiu1Md6NueitIkVVR+u8j7XCN/QYapVdP/UWt1f6jZtT+kkq/NyFZvnwtmRBH974uhj6WLSq/OGG+OWWVqE34d4AquA4Qz0TKYxpVGpcbZ1yXJGOE2SWCFQkkn4jK91nI6GisG1yBdPpjo5ZSj1mVTjuJO1NPOk5K/S407KQjJz3zgicC0r1Ov3Vi+5ZA03bjMXgh2KIPA2YeS4bapdi88Ug3pCywpt45E8M/GrgTXiBMTCpfzHTwiL39QNwhw2jtGaLGWPM2esQzanfWdXlSwkR5r3ltqrcImP4UuVcq85rlYEy8uKZICg9xMR2m+B2jGjGsaKud4sB7L5q0ydkFkpWKa6ilTUVSv0muhM/oc2ee05l1tYWNsUh8GZ39nptnPVf9BTL82ECVLyOD8BxIyKOrqupVm3h5gzZpmJY/RJoxaEGuPFxHhYC+vgGcUnkUfZSgAdQMHiARFmgoiIngETCC8J9Rf79WmBZ+bbPiC6GvvDMMl3bvmCxMzjLlpGPRtV45dKQpoouZEMsgBVlwGy0WoSRHTu4R9B/mADXalCDFiLJHWm8wKHu4psFwNOEahkorRJd/UQGMhcQtcusHhol6z9u2W+E8jcfPcmnzlpRBvSs2W/iXPOHoBiXiObGUmuA5FMXU618p7Vc3omK/le2T23MfczElI=
-  file: wdaproxy.zip
-  on:
-    repo: openatx/wdaproxy
