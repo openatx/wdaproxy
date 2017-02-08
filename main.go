@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -10,6 +12,7 @@ import (
 	"os/exec"
 	"strconv"
 
+	"encoding/json"
 	"github.com/facebookgo/freeport"
 )
 
@@ -17,7 +20,7 @@ var (
 	version = "develop"
 	lisPort = 8100
 	udid    string
-	
+
 	indexContent = `<!doctype html>
 <html>
 <head>
@@ -63,8 +66,42 @@ $.ajax({
 </html>`
 )
 
+type statusResp struct {
+	Value     map[string]interface{} `json:"value,omitempty"`
+	SessionId string                 `json:"sessionId,omitempty"`
+	Status    int                    `json:"status,omitempty"`
+}
+
+type transport struct {
+	http.RoundTripper
+}
+
+func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+	resp, err = t.RoundTripper.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+	if req.RequestURI == "/status" {
+		jsonResp := &statusResp{}
+		err = json.NewDecoder(resp.Body).Decode(jsonResp)
+		if err != nil {
+			return nil, err
+		}
+		resp.Body.Close()
+		jsonResp.Value["udid"] = udid
+		data, _ := json.Marshal(jsonResp)
+		// update body and fix length
+		resp.Body = ioutil.NopCloser(bytes.NewReader(data))
+		resp.ContentLength = int64(len(data))
+		resp.Header.Set("Content-Length", strconv.Itoa(len(data)))
+		return resp, nil
+	}
+	return resp, nil
+}
+
 func NewReverseProxyHandlerFunc(targetURL *url.URL) http.HandlerFunc {
 	httpProxy := httputil.NewSingleHostReverseProxy(targetURL)
+	httpProxy.Transport = &transport{http.DefaultTransport}
 	return func(rw http.ResponseWriter, r *http.Request) {
 		if r.RequestURI == "/" {
 			io.WriteString(rw, indexContent)
@@ -101,7 +138,7 @@ func main() {
 		errC <- http.ListenAndServe(":"+strconv.Itoa(lisPort), nil)
 	}()
 	go func() {
-		log.Printf("launch iproxy, device udid(%s)", udid)
+		log.Printf("launch iproxy, device udid: %s", strconv.Quote(udid))
 		c := exec.Command("iproxy", strconv.Itoa(freePort), "8100")
 		if udid != "" {
 			c.Args = append(c.Args, udid)
