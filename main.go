@@ -13,6 +13,9 @@ import (
 	"strconv"
 
 	"encoding/json"
+
+	"strings"
+
 	"github.com/facebookgo/freeport"
 )
 
@@ -69,7 +72,7 @@ $.ajax({
 type statusResp struct {
 	Value     map[string]interface{} `json:"value,omitempty"`
 	SessionId string                 `json:"sessionId,omitempty"`
-	Status    int                    `json:"status,omitempty"`
+	Status    int                    `json:"status"`
 }
 
 type transport struct {
@@ -77,10 +80,19 @@ type transport struct {
 }
 
 func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+	// rewrite url
+	if strings.HasPrefix(req.RequestURI, "/origin/") {
+		req.URL.Path = req.RequestURI[len("/origin"):]
+		return t.RoundTripper.RoundTrip(req)
+	}
+
+	// request
 	resp, err = t.RoundTripper.RoundTrip(req)
 	if err != nil {
 		return nil, err
 	}
+
+	// rewrite body
 	if req.RequestURI == "/status" {
 		jsonResp := &statusResp{}
 		err = json.NewDecoder(resp.Body).Decode(jsonResp)

@@ -4,6 +4,13 @@ WebDriverAgent Proxy
 
 Only can work in Mac
 
+# Features
+- [x] Launch iproxy when start
+- [x] Create http proxy for WDA server
+- [x] add udid into `GET /status`
+- [x] forward all url starts with `/origin/<url>` to `/<url>`
+- [x] Add the missing Index page
+
 # Usage
 ```
 $ brew install openatx/tap/wdaproxy
