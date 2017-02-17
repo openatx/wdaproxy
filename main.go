@@ -1,4 +1,4 @@
-//go:generate go run assets_generate.go
+//go:generate go run web/assets_generate.go
 
 package main
 
@@ -17,7 +17,9 @@ import (
 	"strings"
 
 	"html/template"
+
 	"github.com/facebookgo/freeport"
+	"github.com/openatx/wdaproxy/web"
 )
 
 var (
@@ -86,7 +88,7 @@ type packageInfo struct {
 }
 
 func assetsContent(name string) string {
-	fd, err := Assets.Open(name)
+	fd, err := web.Assets.Open(name)
 	if err != nil {
 		panic(err)
 	}
