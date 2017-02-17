@@ -22,3 +22,9 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+# Manual
+*.py
+*.zip
+wdaproxy
+assets_vfsdata.go

@@ -1,9 +1,12 @@
+//go:generate go run assets_generate.go
+
 package main
 
 import (
+	"bufio"
 	"bytes"
+	"encoding/json"
 	"flag"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -11,11 +14,9 @@ import (
 	"net/url"
 	"os/exec"
 	"strconv"
-
-	"encoding/json"
-
 	"strings"
 
+	"html/template"
 	"github.com/facebookgo/freeport"
 )
 
@@ -23,56 +24,23 @@ var (
 	version = "develop"
 	lisPort = 8100
 	udid    string
-
-	indexContent = `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>A static page</title>
-  <style>
-  body {
-	  padding: 50px 80px;
-	  margin: 0px;
-  }
-  pre {
-	  font-family: "Courier New";
-	  padding: 10px;
-	  border: 1px solid gray;
-  }
-  </style>
-</head>
-<body>
-  <h1>WDA Proxy</h1>
-  <div>
-  	<ul>
-	  <li><a href="/inspector">Inspector</a></li>
-	  <li><a href="/status">Status</a></li>
-	</ul>
-	<pre id="status"></pre>
-  </div>
-</body>
-<script src="//cdn.jsdelivr.net/jquery/3.1.1/jquery.min.js"></script>
-<script>
-var pre = document.getElementById("status");
-$.ajax({
-	url: "/status",
-	dataType: "json",
-	success: function(ret){
-		pre.innerHTML = JSON.stringify(ret, null, "    ");
-	},
-	error: function(xhr, status, err){
-		pre.innerHTML = xhr.status + " " + err;
-		pre.style.color = "red";
-	}
-})
-</script>
-</html>`
 )
 
 type statusResp struct {
 	Value     map[string]interface{} `json:"value,omitempty"`
 	SessionId string                 `json:"sessionId,omitempty"`
 	Status    int                    `json:"status"`
+}
+
+func getUdid() string {
+	if udid != "" {
+		return udid
+	}
+	output, err := exec.Command("idevice_id", "-l").Output()
+	if err != nil {
+		panic(err)
+	}
+	return strings.TrimSpace(string(output))
 }
 
 type transport struct {
@@ -111,12 +79,66 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	return resp, nil
 }
 
+type packageInfo struct {
+	BundleId string `json:"bundleId"`
+	Name     string `json:"name"`
+	Version  string `json:"version"`
+}
+
+func assetsContent(name string) string {
+	fd, err := Assets.Open(name)
+	if err != nil {
+		panic(err)
+	}
+	data, err := ioutil.ReadAll(fd)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
+}
+
 func NewReverseProxyHandlerFunc(targetURL *url.URL) http.HandlerFunc {
 	httpProxy := httputil.NewSingleHostReverseProxy(targetURL)
 	httpProxy.Transport = &transport{http.DefaultTransport}
 	return func(rw http.ResponseWriter, r *http.Request) {
 		if r.RequestURI == "/" {
-			io.WriteString(rw, indexContent)
+			t := template.Must(template.New("index").Parse(assetsContent("/index.html")))
+			t.Execute(rw, nil)
+			// io.WriteString(rw, indexContent)
+			return
+		}
+		if r.RequestURI == "/packages" {
+			rw.Header().Set("Content-Type", "application/json; charset=utf-8")
+			c := exec.Command("ideviceinstaller", "-l", "--udid", getUdid())
+			out, err := c.Output()
+			if err != nil {
+				json.NewEncoder(rw).Encode(map[string]interface{}{
+					"status": 1,
+					"value":  err.Error(),
+				})
+				return
+			}
+			bufrd := bufio.NewReader(bytes.NewReader(out))
+			bufrd.ReadLine() // ignore first line
+			packages := make([]packageInfo, 0)
+			for {
+				bline, _, er := bufrd.ReadLine()
+				if er != nil {
+					break
+				}
+				fields := strings.Split(string(bline), ", ")
+				if len(fields) != 3 {
+					continue
+				}
+				version, _ := strconv.Unquote(fields[1])
+				name, _ := strconv.Unquote(fields[2])
+				packages = append(packages, packageInfo{fields[0], name, version})
+			}
+
+			json.NewEncoder(rw).Encode(map[string]interface{}{
+				"status": 0,
+				"value":  packages,
+			})
 			return
 		}
 		httpProxy.ServeHTTP(rw, r)

@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>A static page</title>
+  <style>
+    body {
+      padding: 50px 80px;
+      margin: 0px;
+    }
+    
+    pre {
+      font-family: "Courier New";
+      padding: 10px;
+      border: 1px solid gray;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>WDA Proxy</h1>
+  <div>
+    <ul>
+      <li><a href="/inspector">Inspector</a></li>
+      <li><a href="/status">Status</a></li>
+      <li><a href="/packages">Packages</a></li>
+      <li><a href="/remote">Remote</a></li>
+    </ul>
+    <pre id="status"></pre>
+  </div>
+</body>
+<script src="//cdn.jsdelivr.net/jquery/3.1.1/jquery.min.js"></script>
+<script>
+  var pre = document.getElementById("status");
+  $.ajax({
+    url: "/status",
+    dataType: "json",
+    success: function(ret) {
+      pre.innerHTML = JSON.stringify(ret, null, "    ");
+    },
+    error: function(xhr, status, err) {
+      pre.innerHTML = xhr.status + " " + err;
+      pre.style.color = "red";
+    }
+  })
+</script>
+
+</html>
