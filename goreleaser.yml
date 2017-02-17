@@ -4,8 +4,6 @@ build:
     - amd64
   goos:
     - darwin
-  hooks:
-    pre: go generate
 brew:
   repo: openatx/homebrew-tap
   folder: Formula

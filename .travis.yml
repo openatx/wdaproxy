@@ -2,6 +2,8 @@ language: go
 go:
 - 1.7.x
 install: go get -tags dev -t ./...
-script: go test -tags dev -v
+script:
+- go generate
+- go test -v
 after_success: test -n "$TRAVIS_TAG" && curl -s https://raw.githubusercontent.com/goreleaser/get/master/latest
   | bash
