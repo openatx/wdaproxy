@@ -1,6 +1,16 @@
-hash: 266201fc72732d58ed1bd5b967040307c06f04a2a17d8081f9bd6546258fcebc
-updated: 2017-01-18T14:09:23.564250209+08:00
+hash: eae01b2276296447cbd7e12179d76c0f49e7430a44865f50d63b01260d499017
+updated: 2017-02-17T15:57:35.95391419+08:00
 imports:
 - name: github.com/facebookgo/freeport
   version: d4adf43b75b9357dc7775f033e807a3411591522
+- name: github.com/shurcooL/httpfs
+  version: df3d5d88c59699064c4449a2d4e3db0f07e74ed9
+  subpackages:
+  - vfsutil
+- name: github.com/shurcooL/vfsgen
+  version: 8bd98c96e6f6800019cdcd1183547b1c8e89d280
+- name: golang.org/x/tools
+  version: f7f4b0b08a3ec1e3560fffa2d769052b12b5b1d2
+  subpackages:
+  - godoc/vfs
 testImports: []
