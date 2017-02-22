@@ -14,7 +14,7 @@ func main() {
 
 	err := vfsgen.Generate(fs, vfsgen.Options{
 		PackageName:  "web",
-		BuildTags:    "!dev",
+		BuildTags:    "vfs",
 		VariableName: "Assets",
 	})
 	if err != nil {

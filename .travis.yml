@@ -1,9 +1,9 @@
 language: go
 go:
 - 1.7.x
-install: go get -tags dev -t ./...
+install: go get -t ./...
 script:
-- go generate -tags dev ./web
+- go generate ./web
 - go test -v
 after_success: test -n "$TRAVIS_TAG" && curl -s https://raw.githubusercontent.com/goreleaser/get/master/latest
   | bash
