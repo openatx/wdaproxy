@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,13 +21,16 @@ import (
 	"html/template"
 
 	"github.com/facebookgo/freeport"
+	"github.com/openatx/wdaproxy/connector"
 	"github.com/openatx/wdaproxy/web"
 )
 
 var (
-	version = "develop"
-	lisPort = 8100
-	udid    string
+	version      = "develop"
+	lisPort      = 8100
+	udid         string
+	centerServer string
+	centerGroup  string
 )
 
 type statusResp struct {
@@ -147,11 +152,57 @@ func NewReverseProxyHandlerFunc(targetURL *url.URL) http.HandlerFunc {
 	}
 }
 
+type Device struct {
+	Udid         string `json:"serial"`
+	Manufacturer string `json:"manufacturer"`
+}
+
+func mockIOSProvider() {
+	c := connector.New(centerServer, centerGroup, lisPort)
+	go c.KeepOnline()
+
+	device := Device{
+		Udid:         getUdid(),
+		Manufacturer: "Apple",
+	}
+	c.WriteJSON(map[string]interface{}{
+		"type": "addDevice",
+		"data": device,
+	})
+
+	http.HandleFunc("/api/devices/", func(w http.ResponseWriter, r *http.Request) {
+		log.Println(r.RequestURI)
+		// udid := strings.Split(r.RequestURI, "/")[3]
+		if r.Method == "POST" {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success":          true,
+				"description":      "notice this is mock data",
+				"remoteConnectUrl": fmt.Sprintf("http://%s:%d/", c.RemoteIp, lisPort),
+			})
+		}
+		if r.Method == "DELETE" {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success":     true,
+				"description": "Device remote disconnected successfully",
+			})
+		}
+	})
+
+	http.HandleFunc("/devices/", func(w http.ResponseWriter, r *http.Request) {
+		log.Println(r.RequestURI)
+		io.WriteString(w, "Not finished yet")
+	})
+}
+
 func main() {
 	showVer := flag.Bool("v", false, "Print version")
 	flag.IntVar(&lisPort, "p", 8100, "Proxy listen port")
 	flag.StringVar(&udid, "u", "", "device udid")
+	flag.StringVar(&centerServer, "server", "", "server center(not open source yet")
+	flag.StringVar(&centerGroup, "group", "everyone", "server center group")
 	flag.Parse()
+
+	mockIOSProvider()
 
 	if *showVer {
 		println(version)
