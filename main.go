@@ -4,33 +4,37 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
-	"flag"
+	"path/filepath"
+	// "flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 
-	"html/template"
-
 	"github.com/facebookgo/freeport"
+	"github.com/gorilla/mux"
+	accesslog "github.com/mash/go-accesslog"
+	flag "github.com/ogier/pflag"
 	"github.com/openatx/wdaproxy/connector"
 	"github.com/openatx/wdaproxy/web"
 )
 
 var (
-	version      = "develop"
-	lisPort      = 8100
-	udid         string
-	centerServer string
-	centerGroup  string
+	version        = "develop"
+	lisPort        = 8100
+	pWda           string
+	udid           string
+	yosemiteServer string
+	yosemiteGroup  string
+
+	rt = mux.NewRouter()
 )
 
 type statusResp struct {
@@ -48,42 +52,6 @@ func getUdid() string {
 		panic(err)
 	}
 	return strings.TrimSpace(string(output))
-}
-
-type transport struct {
-	http.RoundTripper
-}
-
-func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	// rewrite url
-	if strings.HasPrefix(req.RequestURI, "/origin/") {
-		req.URL.Path = req.RequestURI[len("/origin"):]
-		return t.RoundTripper.RoundTrip(req)
-	}
-
-	// request
-	resp, err = t.RoundTripper.RoundTrip(req)
-	if err != nil {
-		return nil, err
-	}
-
-	// rewrite body
-	if req.RequestURI == "/status" {
-		jsonResp := &statusResp{}
-		err = json.NewDecoder(resp.Body).Decode(jsonResp)
-		if err != nil {
-			return nil, err
-		}
-		resp.Body.Close()
-		jsonResp.Value["udid"] = udid
-		data, _ := json.Marshal(jsonResp)
-		// update body and fix length
-		resp.Body = ioutil.NopCloser(bytes.NewReader(data))
-		resp.ContentLength = int64(len(data))
-		resp.Header.Set("Content-Length", strconv.Itoa(len(data)))
-		return resp, nil
-	}
-	return resp, nil
 }
 
 type packageInfo struct {
@@ -104,75 +72,26 @@ func assetsContent(name string) string {
 	return string(data)
 }
 
-func NewReverseProxyHandlerFunc(targetURL *url.URL) http.HandlerFunc {
-	httpProxy := httputil.NewSingleHostReverseProxy(targetURL)
-	httpProxy.Transport = &transport{http.DefaultTransport}
-	return func(rw http.ResponseWriter, r *http.Request) {
-		if r.RequestURI == "/" {
-			t := template.Must(template.New("index").Parse(assetsContent("/index.html")))
-			t.Execute(rw, nil)
-			// io.WriteString(rw, indexContent)
-			return
-		}
-		if r.RequestURI == "/packages" {
-			rw.Header().Set("Content-Type", "application/json; charset=utf-8")
-			c := exec.Command("ideviceinstaller", "-l", "--udid", getUdid())
-			out, err := c.Output()
-			if err != nil {
-				json.NewEncoder(rw).Encode(map[string]interface{}{
-					"status": 1,
-					"value":  err.Error(),
-				})
-				return
-			}
-			bufrd := bufio.NewReader(bytes.NewReader(out))
-			bufrd.ReadLine() // ignore first line
-			packages := make([]packageInfo, 0)
-			for {
-				bline, _, er := bufrd.ReadLine()
-				if er != nil {
-					break
-				}
-				fields := strings.Split(string(bline), ", ")
-				if len(fields) != 3 {
-					continue
-				}
-				version, _ := strconv.Unquote(fields[1])
-				name, _ := strconv.Unquote(fields[2])
-				packages = append(packages, packageInfo{fields[0], name, version})
-			}
-
-			json.NewEncoder(rw).Encode(map[string]interface{}{
-				"status": 0,
-				"value":  packages,
-			})
-			return
-		}
-		httpProxy.ServeHTTP(rw, r)
-	}
-}
-
 type Device struct {
 	Udid         string `json:"serial"`
 	Manufacturer string `json:"manufacturer"`
 }
 
 func mockIOSProvider() {
-	c := connector.New(centerServer, centerGroup, lisPort)
+	c := connector.New(yosemiteServer, yosemiteGroup, lisPort)
 	go c.KeepOnline()
 
-	device := Device{
-		Udid:         getUdid(),
-		Manufacturer: "Apple",
+	device, err := GetDeviceInfo(getUdid())
+	if err != nil {
+		log.Fatal(err)
 	}
+
 	c.WriteJSON(map[string]interface{}{
 		"type": "addDevice",
 		"data": device,
 	})
 
-	http.HandleFunc("/api/devices/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.RequestURI)
-		// udid := strings.Split(r.RequestURI, "/")[3]
+	rt.HandleFunc("/api/devices/{udid}/remoteConnectUrl", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"success":          true,
@@ -188,19 +107,27 @@ func mockIOSProvider() {
 		}
 	})
 
-	http.HandleFunc("/devices/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.RequestURI)
+	rt.HandleFunc("/devices/{udid}", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "Not finished yet")
 	})
 }
 
 func main() {
-	showVer := flag.Bool("v", false, "Print version")
-	flag.IntVar(&lisPort, "p", 8100, "Proxy listen port")
-	flag.StringVar(&udid, "u", "", "device udid")
-	flag.StringVar(&centerServer, "server", "", "server center(not open source yet")
-	flag.StringVar(&centerGroup, "group", "everyone", "server center group")
+	showVer := flag.BoolP("version", "v", false, "Print version")
+	flag.IntVarP(&lisPort, "port", "p", 8100, "Proxy listen port")
+	flag.StringVarP(&udid, "udid", "u", "", "device udid")
+	flag.StringVarP(&pWda, "wda", "W", "", "WebDriverAgent project directory [optional]")
+
+	flag.StringVarP(&yosemiteServer, "yosemite-server", "S",
+		os.Getenv("YOSEMITE_SERVER"),
+		"server center(not open source yet")
+	flag.StringVarP(&yosemiteGroup, "yosemite-group", "G",
+		"everyone",
+		"server center group")
 	flag.Parse()
+	if udid == "" {
+		udid = getUdid()
+	}
 
 	mockIOSProvider()
 
@@ -209,28 +136,76 @@ func main() {
 		return
 	}
 
-	log.Println("program start......")
 	errC := make(chan error)
 	freePort, err := freeport.Get()
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("get freeport %d", freePort)
+	log.Printf("freeport %d", freePort)
 
 	go func() {
 		log.Printf("launch tcp-proxy, listen on %d", lisPort)
 		targetURL, _ := url.Parse("http://127.0.0.1:" + strconv.Itoa(freePort))
-		httpProxyFunc := NewReverseProxyHandlerFunc(targetURL)
-		http.HandleFunc("/", httpProxyFunc)
-		errC <- http.ListenAndServe(":"+strconv.Itoa(lisPort), nil)
+		rt.HandleFunc("/{path:.*}", NewReverseProxyHandlerFunc(targetURL))
+		errC <- http.ListenAndServe(":"+strconv.Itoa(lisPort), accesslog.NewLoggingHandler(rt, HTTPLogger{}))
 	}()
 	go func() {
-		log.Printf("launch iproxy, device udid: %s", strconv.Quote(udid))
+		log.Printf("launch iproxy (udid: %s)", strconv.Quote(udid))
 		c := exec.Command("iproxy", strconv.Itoa(freePort), "8100")
 		if udid != "" {
 			c.Args = append(c.Args, udid)
 		}
 		errC <- c.Run()
+	}()
+	go func() {
+		if pWda == "" {
+			return
+		}
+		log.Printf("launch WebDriverAgent(dir=%s)", pWda)
+		c := exec.Command("xcodebuild",
+			"-verbose",
+			"-project", "WebDriverAgent.xcodeproj",
+			"-scheme", "WebDriverAgentRunner",
+			"-destination", "id="+udid, "test")
+		c.Dir, _ = filepath.Abs(pWda)
+		// Test Suite 'All tests' started at 2017-02-27 15:55:35.263
+		// Test Suite 'WebDriverAgentRunner.xctest' started at 2017-02-27 15:55:35.266
+		// Test Suite 'UITestingUITests' started at 2017-02-27 15:55:35.267
+		// Test Case '-[UITestingUITests testRunner]' started.
+		// t =     0.00s     Start Test at 2017-02-27 15:55:35.270
+		// t =     0.01s     Set Up
+		pipeReader, writer := io.Pipe()
+		c.Stdout = writer
+		c.Stderr = writer
+		c.Stdin = os.Stdin
+
+		bufrd := bufio.NewReader(pipeReader)
+		if err = c.Start(); err != nil {
+			log.Fatal(err)
+		}
+		lineStr := ""
+		for {
+			line, isPrefix, err := bufrd.ReadLine()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if isPrefix {
+				lineStr = lineStr + string(line)
+				continue
+			} else {
+				lineStr = string(line)
+			}
+			lineStr := strings.TrimSpace(string(line))
+			// log.Println("WWW:", lineStr)
+			if strings.Contains(lineStr, "Successfully wrote Manifest cache to") {
+				log.Println("[WDA] test ipa successfully generated")
+			}
+			if strings.HasPrefix(lineStr, "Test Case '-[UITestingUITests testRunner]' started") {
+				log.Println("[WDA] successfully started")
+			}
+			lineStr = "" // reset str
+		}
 	}()
 
 	log.Fatal(<-errC)

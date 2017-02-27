@@ -15,6 +15,13 @@ import (
 
 var log = qlog.New(os.Stdout, "", qlog.Llevel|qlog.Lshortfile|qlog.LstdFlags)
 
+const (
+	ActionInit          = "init"
+	ActionDeviceAdd     = "addDevice"
+	ActionDeviceRemove  = "removeDevice"
+	ActionDeviceRelease = "releaseDevice"
+)
+
 type Connector struct {
 	ws         *websocket.Conn
 	host       string
@@ -80,7 +87,7 @@ func (w *Connector) keepOnline() error {
 
 	// Step 2: send provider info
 	err = ws.WriteJSON(map[string]interface{}{
-		"type": "init",
+		"type": ActionInit,
 		"data": w,
 	})
 	if err != nil {
@@ -126,6 +133,13 @@ func (w *Connector) keepPing(done chan bool) {
 
 func (w *Connector) WriteJSON(v interface{}) {
 	w.msgC <- v
+}
+
+func (w *Connector) Do(action string, data interface{}) {
+	w.msgC <- map[string]interface{}{
+		"type": action,
+		"data": data,
+	}
 }
 
 // func (w *Connector) ReleaseDevice(serial string, oneOffToken string) {
