@@ -1,6 +1,5 @@
 # Build customization
 build:
-  main: main.go httplog.go ioskit.go main.go revproxy.go
   flags: -tags vfs
   goarch:
     - amd64
