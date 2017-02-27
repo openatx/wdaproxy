@@ -1,5 +1,6 @@
 # Build customization
 build:
+  main: .
   flags: -tags vfs
   goarch:
     - amd64
