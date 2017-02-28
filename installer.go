@@ -9,7 +9,7 @@ import (
 
 type Package struct {
 	Name             string   `plist:"CFBundleDisplayName" json:"name"`
-	BundleId         string   `plist:"CFBundleIdentifier" json:"bundleId`
+	BundleId         string   `plist:"CFBundleIdentifier" json:"bundleId"`
 	Version          string   `plist:"CFBundleVersion" json:"version"`
 	MinOSVersion     string   `plist:"MinimumOSVersion" json:"miniOSVersion"`
 	SupportedDevices []string `plist:"UISupportedDevices" json:"UISupportedDevices"`

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 
@@ -16,7 +17,20 @@ func init() {
 		io.WriteString(w, "Not finished yet")
 	})
 
+	rt.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		t := template.Must(template.New("index").Parse(assetsContent("/index.html")))
+		t.Execute(w, nil)
+	})
+
 	rt.HandleFunc("/packages", func(w http.ResponseWriter, r *http.Request) {
+		t := template.Must(template.New("index").Delims("[[", "]]").Parse(assetsContent("/packages.html")))
+		t.Execute(w, nil)
+	})
+	v1Rounter(rt)
+}
+
+func v1Rounter(rt *mux.Router) {
+	rt.HandleFunc("/api/v1/packages", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		pkgs, err := ListPackages(udid)
 		if err != nil {
@@ -32,7 +46,7 @@ func init() {
 		})
 	})
 
-	rt.HandleFunc("/packages/{bundleId}", func(w http.ResponseWriter, r *http.Request) {
+	rt.HandleFunc("/api/v1/packages/{bundleId}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		bundleId := mux.Vars(r)["bundleId"]
 		output, err := UninstallPackage(udid, bundleId)

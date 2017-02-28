@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>WDA App Manager</title>
+  <style>
+  body {
+    padding: 50px 80px;
+    margin: 0px;
+  }
+  
+  pre {
+    font-family: "Courier New";
+    padding: 10px;
+    border: 1px solid gray;
+  }
+  </style>
+</head>
+
+<body>
+  <h1>Packages</h1>
+  <div id="app">
+    <li v-for="v in pkgs">
+      {{v.name}}
+      <button :disabled="v.busy" v-on:click="uninstall(v)">
+        Uninstall
+        <span v-if="v.busy">ing...</span>
+      </button>
+    </li>
+  </div>
+</body>
+<script src="//cdn.jsdelivr.net/jquery/3.1.1/jquery.min.js"></script>
+<script src="//cdn.jsdelivr.net/vue/2.2.1/vue.min.js"></script>
+<script>
+var pre = document.getElementById("status");
+
+new Vue({
+  el: "#app",
+  data: {
+    pkgs: [],
+  },
+  methods: {
+    uninstall: function(pkg) {
+      var self = this;
+      pkg.busy = true;
+      $.ajax({
+        url: "/api/v1/packages/" + pkg.bundleId,
+        dataType: "json",
+        method: "DELETE",
+        success: function(ret) {
+          if (ret.success) {
+            self.pkgs = self.pkgs.filter(function(v) {
+              return v.bundleId != pkg.bundleId;
+            })
+          }
+          alert(ret.description);
+        }
+      })
+    }
+  },
+  created: function() {
+    var self = this;
+    $.ajax({
+      url: "/api/v1/packages",
+      dataType: "json",
+      success: function(ret) {
+        if (!ret.success) {
+          alert(ret.description);
+          return;
+        }
+        self.pkgs = ret.value.map(function(v) {
+          v.busy = false;
+          return v;
+        });
+      }
+    })
+  }
+})
+</script>
+
+</html>

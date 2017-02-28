@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"html/template"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -52,11 +51,6 @@ func NewReverseProxyHandlerFunc(targetURL *url.URL) http.HandlerFunc {
 	httpProxy := httputil.NewSingleHostReverseProxy(targetURL)
 	httpProxy.Transport = &transport{http.DefaultTransport}
 	return func(rw http.ResponseWriter, r *http.Request) {
-		if r.RequestURI == "/" {
-			t := template.Must(template.New("index").Parse(assetsContent("/index.html")))
-			t.Execute(rw, nil)
-			return
-		}
 		httpProxy.ServeHTTP(rw, r)
 	}
 }
