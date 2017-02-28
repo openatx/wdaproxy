@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"html/template"
@@ -9,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os/exec"
 	"strconv"
 	"strings"
 )
@@ -57,41 +55,6 @@ func NewReverseProxyHandlerFunc(targetURL *url.URL) http.HandlerFunc {
 		if r.RequestURI == "/" {
 			t := template.Must(template.New("index").Parse(assetsContent("/index.html")))
 			t.Execute(rw, nil)
-			// io.WriteString(rw, indexContent)
-			return
-		}
-		if r.RequestURI == "/packages" {
-			rw.Header().Set("Content-Type", "application/json; charset=utf-8")
-			c := exec.Command("ideviceinstaller", "-l", "--udid", getUdid())
-			out, err := c.Output()
-			if err != nil {
-				json.NewEncoder(rw).Encode(map[string]interface{}{
-					"status": 1,
-					"value":  err.Error(),
-				})
-				return
-			}
-			bufrd := bufio.NewReader(bytes.NewReader(out))
-			bufrd.ReadLine() // ignore first line
-			packages := make([]packageInfo, 0)
-			for {
-				bline, _, er := bufrd.ReadLine()
-				if er != nil {
-					break
-				}
-				fields := strings.Split(string(bline), ", ")
-				if len(fields) != 3 {
-					continue
-				}
-				version, _ := strconv.Unquote(fields[1])
-				name, _ := strconv.Unquote(fields[2])
-				packages = append(packages, packageInfo{fields[0], name, version})
-			}
-
-			json.NewEncoder(rw).Encode(map[string]interface{}{
-				"status": 0,
-				"value":  packages,
-			})
 			return
 		}
 		httpProxy.ServeHTTP(rw, r)

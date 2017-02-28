@@ -6,9 +6,42 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/openatx/wdaproxy/connector"
 	"github.com/qiniu/log"
 )
+
+func init() {
+	rt.HandleFunc("/devices/{udid}", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "Not finished yet")
+	})
+
+	rt.HandleFunc("/packages", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		pkgs, err := ListPackages(udid)
+		if err != nil {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success":     false,
+				"description": err.Error(),
+			})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"value":   pkgs,
+		})
+	})
+
+	rt.HandleFunc("/packages/{bundleId}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		bundleId := mux.Vars(r)["bundleId"]
+		output, err := UninstallPackage(udid, bundleId)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":     err == nil,
+			"description": output,
+		})
+	}).Methods("DELETE")
+}
 
 func mockIOSProvider() {
 	c := connector.New(yosemiteServer, yosemiteGroup, lisPort)
@@ -39,8 +72,4 @@ func mockIOSProvider() {
 			})
 		}
 	}).Methods("POST", "DELETE")
-
-	rt.HandleFunc("/devices/{udid}", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "Not finished yet")
-	})
 }

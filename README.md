@@ -10,13 +10,28 @@ Only can work in Mac
 - [x] add udid into `GET /status`
 - [x] forward all url starts with `/origin/<url>` to `/<url>`
 - [x] Add the missing Index page
+- [x] Support URL `GET /packages` and `DELETE /packages/{bundleId}`
+- [x] Support launch WDA
 
-# Usage
+# Installl
 ```
 $ brew install openatx/tap/wdaproxy
+```
+
+# Usage
+Simple run 
+
+```
 $ wdaproxy -p 8100 -u $UDID
 ```
 
+Run with WDA
+
+```
+$ wdaproxy -W ../WebDriverAgent
+```
+
+For more run `wdaproxy -h`
 
 # LICENSE
 Under [MIT](LICENSE)

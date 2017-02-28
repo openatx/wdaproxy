@@ -52,12 +52,6 @@ func getUdid() string {
 	return strings.TrimSpace(string(output))
 }
 
-type packageInfo struct {
-	BundleId string `json:"bundleId"`
-	Name     string `json:"name"`
-	Version  string `json:"version"`
-}
-
 func assetsContent(name string) string {
 	fd, err := web.Assets.Open(name)
 	if err != nil {
