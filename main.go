@@ -4,13 +4,11 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"path/filepath"
 	// "flag"
-	"fmt"
+
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,8 +20,8 @@ import (
 	"github.com/gorilla/mux"
 	accesslog "github.com/mash/go-accesslog"
 	flag "github.com/ogier/pflag"
-	"github.com/openatx/wdaproxy/connector"
 	"github.com/openatx/wdaproxy/web"
+	"github.com/qiniu/log"
 )
 
 var (
@@ -77,41 +75,6 @@ type Device struct {
 	Manufacturer string `json:"manufacturer"`
 }
 
-func mockIOSProvider() {
-	c := connector.New(yosemiteServer, yosemiteGroup, lisPort)
-	go c.KeepOnline()
-
-	device, err := GetDeviceInfo(getUdid())
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	c.WriteJSON(map[string]interface{}{
-		"type": "addDevice",
-		"data": device,
-	})
-
-	rt.HandleFunc("/api/devices/{udid}/remoteConnectUrl", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" {
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"success":          true,
-				"description":      "notice this is mock data",
-				"remoteConnectUrl": fmt.Sprintf("http://%s:%d/", c.RemoteIp, lisPort),
-			})
-		}
-		if r.Method == "DELETE" {
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"success":     true,
-				"description": "Device remote disconnected successfully",
-			})
-		}
-	})
-
-	rt.HandleFunc("/devices/{udid}", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "Not finished yet")
-	})
-}
-
 func main() {
 	showVer := flag.BoolP("version", "v", false, "Print version")
 	flag.IntVarP(&lisPort, "port", "p", 8100, "Proxy listen port")
@@ -129,11 +92,13 @@ func main() {
 		udid = getUdid()
 	}
 
-	mockIOSProvider()
-
 	if *showVer {
 		println(version)
 		return
+	}
+
+	if yosemiteServer != "" {
+		mockIOSProvider()
 	}
 
 	errC := make(chan error)
