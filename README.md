@@ -1,8 +1,10 @@
 # wdaproxy
 [![Powered By: GoReleaser](https://img.shields.io/badge/powered%20by-goreleaser-green.svg?style=flat-square)](https://github.com/goreleaser)
-WebDriverAgent Proxy
 
-Only can work in Mac
+Make [WebDriverAgent](https://github.com/facebook/WebDriverAgent) more powerful.
+
+# Platform
+Limited in Mac
 
 # Features
 - [x] Launch iproxy when start
@@ -10,7 +12,7 @@ Only can work in Mac
 - [x] add udid into `GET /status`
 - [x] forward all url starts with `/origin/<url>` to `/<url>`
 - [x] Add the missing Index page
-- [x] Support URL `GET /packages` and `DELETE /packages/{bundleId}`
+- [x] Support Package management API
 - [x] Support launch WDA
 
 # Installl
@@ -32,6 +34,26 @@ $ wdaproxy -W ../WebDriverAgent
 ```
 
 For more run `wdaproxy -h`
+
+# Extended API
+Package install
+
+```
+$ curl -X POST -F file=@some.ipa http://localhost:8100/api/v1/packages
+$ curl -X POST -F url="http://somehost.com/some.ipa" http://localhost:8100/api/v1/packages
+```
+
+Package uninstall
+
+```
+$ curl -X DELETE http://localhost:8100/api/v1/packages/${BUNDLE_ID}
+```
+
+Package list (parse from `ideviceinstaller -l`)
+
+```
+$ curl -X GET http://localhost:8100/api/v1/packages
+```
 
 # LICENSE
 Under [MIT](LICENSE)
