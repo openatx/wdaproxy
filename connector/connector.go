@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/codeskyblue/muuid"
@@ -44,7 +45,7 @@ func New(host string, group string, listenPort int) *Connector {
 		msgC:       make(chan interface{}),
 		Group:      group,
 		listenPort: listenPort,
-		Id:         muuid.UUID(),
+		Id:         muuid.UUID() + ":" + strconv.Itoa(listenPort),
 		OS:         runtime.GOOS,
 		Arch:       runtime.GOARCH,
 	}

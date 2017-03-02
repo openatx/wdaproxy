@@ -27,7 +27,7 @@ func init() {
 	})
 
 	rt.HandleFunc("/packages", func(w http.ResponseWriter, r *http.Request) {
-		t := template.Must(template.New("index").Delims("[[", "]]").Parse(assetsContent("/packages.html")))
+		t := template.Must(template.New("pkgs").Delims("[[", "]]").Parse(assetsContent("/packages.html")))
 		t.Execute(w, nil)
 	})
 	v1Rounter(rt)
