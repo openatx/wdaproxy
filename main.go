@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
+	"net"
 	"path/filepath"
-	// "flag"
 
 	"io"
 	"io/ioutil"
@@ -20,8 +20,12 @@ import (
 	flag "github.com/ogier/pflag"
 	"github.com/openatx/wdaproxy/web"
 	"github.com/qiniu/log"
-    _ "github.com/shurcooL/vfsgen"
+	_ "github.com/shurcooL/vfsgen"
 )
+
+func init() {
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
+}
 
 var (
 	version        = "develop"
@@ -90,6 +94,11 @@ func main() {
 		return
 	}
 
+	lis, err := net.Listen("tcp", ":"+strconv.Itoa(lisPort))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	if yosemiteServer != "" {
 		mockIOSProvider()
 	}
@@ -105,7 +114,7 @@ func main() {
 		log.Printf("launch tcp-proxy, listen on %d", lisPort)
 		targetURL, _ := url.Parse("http://127.0.0.1:" + strconv.Itoa(freePort))
 		rt.HandleFunc("/{path:.*}", NewReverseProxyHandlerFunc(targetURL))
-		errC <- http.ListenAndServe(":"+strconv.Itoa(lisPort), accesslog.NewLoggingHandler(rt, HTTPLogger{}))
+		errC <- http.Serve(lis, accesslog.NewLoggingHandler(rt, HTTPLogger{}))
 	}()
 	go func() {
 		log.Printf("launch iproxy (udid: %s)", strconv.Quote(udid))
@@ -145,7 +154,7 @@ func main() {
 		for {
 			line, isPrefix, err := bufrd.ReadLine()
 			if err != nil {
-				log.Fatal(err)
+				log.Fatal("[WDA] exit", err)
 			}
 
 			if isPrefix {
@@ -155,7 +164,6 @@ func main() {
 				lineStr = string(line)
 			}
 			lineStr := strings.TrimSpace(string(line))
-			// log.Println("WWW:", lineStr)
 			if strings.Contains(lineStr, "Successfully wrote Manifest cache to") {
 				log.Println("[WDA] test ipa successfully generated")
 			}
