@@ -18,7 +18,8 @@ import (
 
 func init() {
 	rt.HandleFunc("/devices/{udid}", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "Not finished yet")
+		http.Redirect(w, r, "/", 302)
+		// io.WriteString(w, "Not finished yet")
 	})
 
 	rt.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -132,10 +133,11 @@ func mockIOSProvider() {
 		log.Fatal(err)
 	}
 
-	c.WriteJSON(map[string]interface{}{
-		"type": "addDevice",
-		"data": device,
-	})
+	c.AddDevice(device.Udid, device)
+	// c.WriteJSON(map[string]interface{}{
+	// 	"type": "addDevice",
+	// 	"data": device,
+	// })
 	rt.HandleFunc("/api/devices/{udid}/remoteConnect", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		if r.Method == "POST" {

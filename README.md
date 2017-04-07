@@ -55,5 +55,12 @@ Package list (parse from `ideviceinstaller -l`)
 $ curl -X GET http://localhost:8100/api/v1/packages
 ```
 
+# For developer
+Update golang vendor
+```
+brew install glide
+glide up
+```
+
 # LICENSE
 Under [MIT](LICENSE)

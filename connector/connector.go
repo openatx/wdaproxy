@@ -37,6 +37,7 @@ type Connector struct {
 	Address string `json:"address"`
 
 	RemoteIp string `json:"-"`
+	devices  map[string]interface{}
 }
 
 func New(host string, group string, listenPort int) *Connector {
@@ -48,12 +49,16 @@ func New(host string, group string, listenPort int) *Connector {
 		Id:         muuid.UUID() + ":" + strconv.Itoa(listenPort),
 		OS:         runtime.GOOS,
 		Arch:       runtime.GOARCH,
+		devices:    make(map[string]interface{}),
 	}
 	c.Name, _ = os.Hostname()
 	return c
 }
 
 func (w *Connector) KeepOnline() {
+	if w.host == "" {
+		return
+	}
 	for {
 		w.keepOnline()
 		log.Println("Retry connect to center after 3.0s")
@@ -101,6 +106,11 @@ func (w *Connector) keepOnline() error {
 		done <- true
 	}()
 
+	// resend registed device data
+	for _, device := range w.devices {
+		w.Do(ActionDeviceAdd, device)
+	}
+
 	for {
 		_, message, err := ws.ReadMessage()
 		if err != nil {
@@ -141,6 +151,11 @@ func (w *Connector) Do(action string, data interface{}) {
 		"type": action,
 		"data": data,
 	}
+}
+
+func (w *Connector) AddDevice(id string, device interface{}) {
+	w.Do(ActionDeviceAdd, device)
+	w.devices[id] = device
 }
 
 // func (w *Connector) ReleaseDevice(serial string, oneOffToken string) {
