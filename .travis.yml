@@ -1,7 +1,7 @@
 language: go
 go:
 - 1.7.x
-install: go get -v
+install: go get -v -t
 script:
 - go generate ./web
 - go test -v

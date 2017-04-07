@@ -1,5 +1,5 @@
 hash: eae01b2276296447cbd7e12179d76c0f49e7430a44865f50d63b01260d499017
-updated: 2017-04-07T16:56:04.270083519+08:00
+updated: 2017-04-07T17:22:16.746702043+08:00
 imports:
 - name: github.com/codeskyblue/muuid
   version: 44f8dfd4b3a966e347fe17845ccdc0ba16218b5c
@@ -22,7 +22,15 @@ imports:
 - name: github.com/qiniu/log
   version: a304a74568d6982c5b89de1c68ac8fca3add196a
 - name: github.com/satori/go.uuid
-  version: 5bf94b69c6b68ee1b541973bb8e1144db23a194b
+  version: b061729afc07e77a8aa4fad0a2fd840958f1942a
+- name: github.com/shurcooL/httpfs
+  version: df3d5d88c59699064c4449a2d4e3db0f07e74ed9
+  subpackages:
+  - vfsutil
 - name: github.com/shurcooL/vfsgen
   version: 47fc2dca6b1893fc933dd7476c615a3fda08e3b9
+- name: golang.org/x/tools
+  version: 24acc66eabead631b4e856255a9ad925549cee80
+  subpackages:
+  - godoc/vfs
 testImports: []

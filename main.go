@@ -20,6 +20,7 @@ import (
 	flag "github.com/ogier/pflag"
 	"github.com/openatx/wdaproxy/web"
 	"github.com/qiniu/log"
+    _ "github.com/shurcooL/vfsgen"
 )
 
 var (
