@@ -7,7 +7,9 @@ build:
   goos:
     - darwin
 brew:
-  repo: openatx/homebrew-tap
+  github: 
+    owner: openatx
+    name: homebrew-tap
   folder: Formula
   dependencies:
     - libimobiledevice
