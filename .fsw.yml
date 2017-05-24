@@ -7,7 +7,7 @@ triggers:
   - '**/*.py'
   env:
     DEBUG: "1"
-  cmd: go build -tags dev && ./wdaproxy -p 8200
+  cmd: go build && ./wdaproxy -p 8200
   shell: true
   delay: 100ms
   stop_timeout: 500ms

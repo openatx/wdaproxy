@@ -1,0 +1,327 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Remote Control</title>
+  <!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+  <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <!-- 可选的 Bootstrap 主题文件（一般不用引入） -->
+  <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+</head>
+<style>
+  * {
+    margin: 0px;
+    padding: 0px;
+  }
+  
+  .color-red {
+    color: red;
+  }
+  
+  html,
+  body {
+    height: 100%;
+    width: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"
+  }
+  
+  .height100p {
+    height: 100%;
+  }
+  
+  pre {
+    font-family: "Courier New";
+    padding: 10px;
+    border: 1px solid gray;
+  }
+  
+  .finger {
+    position: absolute;
+    border-style: solid;
+    border-radius: 50%;
+    border-color: white;
+    border-width: 0mm;
+    width: 6mm;
+    height: 6mm;
+    top: -3mm;
+    left: -3mm;
+    opacity: 0.7;
+    pointer-events: none;
+    background: red;
+    /*#464646;*/
+    /*background: red;*/
+    display: none;
+  }
+  
+  .finger-1 {
+    background-color: blue;
+  }
+  
+  .finger.active {
+    display: block;
+  }
+  
+  .screen-img {
+    max-height: 100%;
+    max-width: 100%;
+  }
+</style>
+
+<body>
+  <div id="app" class="container height100p">
+    <div class="row height100p">
+      <div class="col-md-6 height100p">
+        <div style="display: inline-block; position: relative" class="height100p">
+          <span class="finger finger-0" style="transform: translate3d(0, 0, 0)"></span>
+          <span class="finger finger-1"></span>
+          <img id="screen" class="screen-img" ondragstart="return false" />
+        </div>
+      </div>
+      <div class="col-md-6">
+        <h3>iPhone 6</h3>
+        <hr>
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title">设备详情</h3>
+          </div>
+          <table class="table">
+            <tbody>
+              <tr>
+                <td>ScreenSize</td>
+                <td><span v-text="display.width"></span>x<span v-text="display.height"></span></td>
+              </tr>
+              <tr>
+                <td>SessionId</td>
+                <td><span v-text="sessionId"></span></td>
+              </tr>
+              <tr>
+                <td>RefreshCount</td>
+                <td><span v-text="refreshCount"></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <button class="btn btn-default" @click="home()">Home</button>
+      </div>
+    </div>
+  </div>
+
+  <!--<script src="//cdn.jsdelivr.net/jquery/3.1.1/jquery.min.js"></script>-->
+  <script src="//cdn.jsdelivr.net/g/vue@2.1.10,jquery@3.1.1"></script>
+  <script src="//cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script>
+    var app = new Vue({
+      el: "#app",
+      data: {
+        display: {
+          width: 0,
+          height: 0,
+          naturalWidth: 0,
+          naturalHeight: 0,
+        },
+        refreshCount: 0,
+        sessionId: null,
+      },
+      mounted: function() {
+        this.refreshScreen();
+        this.initTouchListener();
+        this.initScreenSize();
+        var self = this;
+        $("#screen")[0].onload = function(e) {
+          var nw = e.target.naturalWidth;
+          var nh = e.target.naturalHeight;
+          if (nw && nh && self.display.naturalHeight != nh) {
+            self.display.naturalWidth = nw;
+            self.display.naturalHeight = nh;
+            self.initScreenSize();
+            console.log("Detect screen rotate");
+          }
+        }.bind(this);
+      },
+      methods: {
+        tap: function(x, y) {
+          var self = this;
+          return $.ajax({
+            url: "/session/" + self.sessionId + "/wda/tap/0",
+            method: "POST",
+            data: JSON.stringify({
+              x: x,
+              y: y
+            }),
+          }).then(function(ret) {
+            if (ret.status === 6) {
+              console.log(ret.value);
+            } else {
+              return "Success";
+            }
+          })
+        },
+        swipe: function(fromX, fromY, toX, toY) {
+          var self = this;
+          return $.ajax({
+              url: "/session/" + self.sessionId + "/wda/dragfromtoforduration",
+              method: "POST",
+              data: JSON.stringify({
+                fromX: fromX,
+                fromY: fromY,
+                toX: toX,
+                toY: toY,
+                duration: 0.2,
+              })
+            })
+            .then(function(ret) {
+              console.log(ret);
+            })
+        },
+        home: function() {
+          return $.ajax({
+            url: "/wda/homescreen",
+            method: "POST",
+          }).then(function(ret) {
+            console.log(ret);
+          })
+        },
+        refreshScreen: function() {
+          return $.ajax({
+            url: "/screenshot",
+            method: "GET",
+          }).then(function(ret) {
+            var imgSrc = "data:image/png;base64," + ret.value;
+            $("#screen").attr("src", imgSrc);
+            this.refreshCount += 1;
+            setTimeout(this.refreshScreen, 200);
+          }.bind(this))
+        },
+        initScreenSize: function() {
+          $.ajax({
+              url: "/status",
+            })
+            .then(function(ret) {
+              this.sessionId = ret.sessionId;
+              return $.ajax({
+                url: "/session/" + ret.sessionId + "/window/size",
+              })
+            }.bind(this))
+            .then(function(ret) {
+              this.display.width = ret.value.width;
+              this.display.height = ret.value.height;
+            }.bind(this))
+        },
+        initTouchListener: function() {
+          var self = this;
+          var element = $("#screen")[0];
+          var screen = {
+            bounds: {},
+            firstPosition: {},
+            secondPosition: {},
+          }
+
+          function calculateBounds() {
+            var el = element;
+            screen.bounds.w = el.offsetWidth
+            screen.bounds.h = el.offsetHeight
+            screen.bounds.x = 0
+            screen.bounds.y = 0
+
+            while (el.offsetParent) {
+              screen.bounds.x += el.offsetLeft
+              screen.bounds.y += el.offsetTop
+              el = el.offsetParent
+            }
+          }
+
+          function deactiveFinger(index) {
+            $(".finger-" + index).removeClass("active")
+          }
+
+          function convertPosition(event) {
+            var e = event;
+            if (e.originalEvent) {
+              e = e.originalEvent
+            }
+            // Ignore mouse right click
+            if (e.which === 3) {
+              return;
+            }
+            e.preventDefault()
+            calculateBounds()
+            var x = e.pageX - screen.bounds.x
+            var y = e.pageY - screen.bounds.y
+            return {
+              e: e,
+              x: Math.floor(x / element.clientHeight * self.display.height),
+              y: Math.floor(y / element.clientHeight * self.display.height),
+              pageX: x,
+              pageY: y,
+            }
+          }
+
+          function stopMousing() {
+            element.removeEventListener('mousemove', mouseMoveListener);
+            document.removeEventListener('mouseup', mouseUpListener);
+          }
+
+          function mouseUpListener(event) {
+            var p = convertPosition(event);
+            stopMousing()
+
+            var first = screen.firstPosition,
+              second = screen.secondPosition;
+
+            var defer;
+            if (second && second.x) {
+              console.log("Swipe", first, second);
+              defer = self.swipe(first.x, first.y, second.x, second.y);
+            } else {
+              console.log("Tap", first);
+              defer = self.tap(first.x, first.y).then(function(ret) {
+                console.log(ret);
+              })
+            }
+            defer.then(function() {
+              deactiveFinger(0);
+              deactiveFinger(1);
+            })
+          }
+
+          function mouseMoveListener(event) {
+            var p = convertPosition(event);
+            var first = screen.firstPosition;
+            var distance = Math.sqrt((first.x - p.x) * (first.x - p.x) + (first.y - p.y) * (first.y - p.y));
+            if (distance > 10) {
+              screen.secondPosition = {
+                x: p.x,
+                y: p.y
+              };
+              $(".finger-1")
+                .addClass("active")
+                .css("transform", 'translate3d(' + p.pageX + 'px,' + p.pageY + 'px,0)')
+            } else {
+              screen.secondPosition = {};
+            }
+          }
+
+          function mouseDownListener(event) {
+            var p = convertPosition(event);
+            var index = 0;
+            $(".finger-" + index)
+              .addClass("active")
+              .css("transform", 'translate3d(' + p.pageX + 'px,' + p.pageY + 'px,0)')
+
+            screen.firstPosition = {
+              x: p.x,
+              y: p.y
+            }
+
+            element.addEventListener('mousemove', mouseMoveListener);
+            document.addEventListener('mouseup', mouseUpListener);
+          }
+          element.addEventListener("mousedown", mouseDownListener);
+        }
+      }
+    })
+  </script>
+</body>
+
+</html>

@@ -10,9 +10,11 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/openatx/wdaproxy/connector"
+	"github.com/openatx/wdaproxy/web"
 	"github.com/qiniu/log"
 )
 
@@ -31,6 +33,19 @@ func init() {
 		t := template.Must(template.New("pkgs").Delims("[[", "]]").Parse(assetsContent("/packages.html")))
 		t.Execute(w, nil)
 	})
+
+	rt.HandleFunc("/remote", func(w http.ResponseWriter, r *http.Request) {
+		t := template.Must(template.New("pkgs").Delims("[[", "]]").Parse(assetsContent("/remote-control.html")))
+		t.Execute(w, nil)
+	})
+
+	rt.PathPrefix("/res/").Handler(http.StripPrefix("/res/", http.FileServer(web.Assets)))
+
+	rt.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		favicon, _ := web.Assets.Open("images/favicon.ico")
+		http.ServeContent(w, r, "favicon.ico", time.Now(), favicon)
+	})
+
 	v1Rounter(rt)
 }
 
