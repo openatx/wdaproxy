@@ -14,6 +14,7 @@ Limited in Mac
 - [x] Add the missing Index page
 - [x] Support Package management API
 - [x] Support launch WDA
+- [x] iOS device remote control
 
 # Installl
 ```
