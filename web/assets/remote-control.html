@@ -102,7 +102,18 @@
             </tbody>
           </table>
         </div>
-        <button class="btn btn-default" @click="home()">Home</button>
+        <div class="form-group">
+          <button class="btn btn-default" @click="home()">
+            <span class="glyphicon glyphicon-home"></span> Home
+          </button>
+        </div>
+        <div class="input-group">
+          <input type="text" class="form-control" v-model="inputText" placeholder="Input text ..." @keyup.enter="sendText(inputText+'\n')">
+          <span class="input-group-btn">
+            <button class="btn btn-default" type="button" @click="sendText(inputText)">SendText</button>
+          </span>
+        </div>
+        <!-- /input-group -->
       </div>
     </div>
   </div>
@@ -122,8 +133,17 @@
         },
         refreshCount: 0,
         sessionId: null,
+        pageHidden: false,
+        inputText: '',
       },
       mounted: function() {
+        var self = this;
+        document.addEventListener(
+          'visibilitychange',
+          function() {
+            self.pageHidden = document.hidden;
+          }, false
+        )
         this.refreshScreen();
         this.initTouchListener();
         this.initScreenSize();
@@ -160,38 +180,55 @@
         swipe: function(fromX, fromY, toX, toY) {
           var self = this;
           return $.ajax({
-              url: "/session/" + self.sessionId + "/wda/dragfromtoforduration",
+            url: "/session/" + self.sessionId + "/wda/dragfromtoforduration",
+            method: "POST",
+            data: JSON.stringify({
+              fromX: fromX,
+              fromY: fromY,
+              toX: toX,
+              toY: toY,
+              duration: 0.2,
+            })
+          })
+        },
+        home: function() {
+          return $.ajax({
+              url: "/wda/homescreen",
+              method: "POST",
+            })
+            .then(function(ret) {
+              console.log(ret);
+            })
+        },
+        sendText: function(text) {
+          return $.ajax({
+              url: "/session/" + this.sessionId + "/wda/keys",
               method: "POST",
               data: JSON.stringify({
-                fromX: fromX,
-                fromY: fromY,
-                toX: toX,
-                toY: toY,
-                duration: 0.2,
+                value: text.split('')
               })
             })
             .then(function(ret) {
               console.log(ret);
             })
         },
-        home: function() {
-          return $.ajax({
-            url: "/wda/homescreen",
-            method: "POST",
-          }).then(function(ret) {
-            console.log(ret);
-          })
-        },
         refreshScreen: function() {
-          return $.ajax({
-            url: "/screenshot",
-            method: "GET",
-          }).then(function(ret) {
-            var imgSrc = "data:image/png;base64," + ret.value;
-            $("#screen").attr("src", imgSrc);
-            this.refreshCount += 1;
+          if (this.pageHidden) {
+            console.log("Hidden");
             setTimeout(this.refreshScreen, 200);
-          }.bind(this))
+            return;
+          }
+          return $.getJSON("/screenshot")
+            .done(function(ret) {
+              var imgSrc = "data:image/png;base64," + ret.value;
+              $("#screen").attr("src", imgSrc);
+              this.refreshCount += 1;
+              setTimeout(this.refreshScreen, 200);
+            }.bind(this))
+            .fail(function(ret) {
+              console.log("load screen failed", ret)
+              alert("Load screen failed");
+            })
         },
         initScreenSize: function() {
           $.ajax({
@@ -269,19 +306,20 @@
             var first = screen.firstPosition,
               second = screen.secondPosition;
 
+            element.style.cursor = 'not-allowed'
             var defer;
             if (second && second.x) {
               console.log("Swipe", first, second);
               defer = self.swipe(first.x, first.y, second.x, second.y);
             } else {
               console.log("Tap", first);
-              defer = self.tap(first.x, first.y).then(function(ret) {
-                console.log(ret);
-              })
+              defer = self.tap(first.x, first.y)
             }
             defer.then(function() {
+              console.log("Release operation")
               deactiveFinger(0);
               deactiveFinger(1);
+              element.style.cursor = 'auto'
             })
           }
 
@@ -303,6 +341,9 @@
           }
 
           function mouseDownListener(event) {
+            if (element.style.cursor == 'not-allowed') {
+              return;
+            }
             var p = convertPosition(event);
             var index = 0;
             $(".finger-" + index)

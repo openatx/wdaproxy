@@ -2,15 +2,15 @@ package main
 
 import (
 	"bufio"
-	"net"
-	"path/filepath"
-
+	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -34,6 +34,7 @@ var (
 	udid           string
 	yosemiteServer string
 	yosemiteGroup  string
+	debug          bool
 
 	rt = mux.NewRouter()
 )
@@ -77,6 +78,7 @@ func main() {
 	flag.IntVarP(&lisPort, "port", "p", 8100, "Proxy listen port")
 	flag.StringVarP(&udid, "udid", "u", "", "device udid")
 	flag.StringVarP(&pWda, "wda", "W", "", "WebDriverAgent project directory [optional]")
+	flag.BoolVarP(&debug, "debug", "d", false, "Open debug mode")
 
 	flag.StringVarP(&yosemiteServer, "yosemite-server", "S",
 		os.Getenv("YOSEMITE_SERVER"),
@@ -164,6 +166,9 @@ func main() {
 				lineStr = string(line)
 			}
 			lineStr := strings.TrimSpace(string(line))
+			if debug {
+				fmt.Printf("[WDA] %s\n", lineStr)
+			}
 			if strings.Contains(lineStr, "Successfully wrote Manifest cache to") {
 				log.Println("[WDA] test ipa successfully generated")
 			}
