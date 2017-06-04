@@ -41,7 +41,7 @@
     border-style: solid;
     border-radius: 50%;
     border-color: white;
-    border-width: 0mm;
+    border-width: 1mm;
     width: 6mm;
     height: 6mm;
     top: -3mm;
@@ -62,9 +62,26 @@
     display: block;
   }
   
+  .finger.longClick {
+    border: 1mm solid rebeccapurple;
+  }
+  
   .screen-img {
     max-height: 100%;
     max-width: 100%;
+    border: 1px solid gray;
+  }
+  
+  .screen-wraper {
+    position: relative;
+    display: inline-block;
+    height: 100%;
+  }
+  
+  video::-webkit-media-controls-panel {
+    /* always show video controls */
+    display: flex !important;
+    opacity: 1 !important;
   }
 </style>
 
@@ -72,7 +89,7 @@
   <div id="app" class="container height100p">
     <div class="row height100p">
       <div class="col-sm-6 height100p">
-        <div style="display: inline-block; position: relative" class="height100p">
+        <div class="screen-wraper">
           <span class="finger finger-0" style="transform: translate3d(0, 0, 0)"></span>
           <span class="finger finger-1"></span>
           <img id="screen" class="screen-img" ondragstart="return false" />
@@ -99,6 +116,10 @@
                 <td>RefreshCount</td>
                 <td><span v-text="refreshCount"></span></td>
               </tr>
+              <tr>
+                <td>Current</td>
+                <td>{{current.toFixed(3)}} mA</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -107,13 +128,38 @@
             <span class="glyphicon glyphicon-home"></span> Home
           </button>
         </div>
-        <div class="input-group">
-          <input type="text" class="form-control" v-model="inputText" placeholder="Input text ..." @keyup.enter="sendText(inputText+'\n')">
-          <span class="input-group-btn">
-            <button class="btn btn-default" type="button" @click="sendText(inputText)">SendText</button>
-          </span>
+        <div class="form-group">
+          <div class="input-group">
+            <input type="text" class="form-control" v-model="inputText" placeholder="Input text ..." @keyup.enter="sendText(inputText+'\n')">
+            <span class="input-group-btn">
+              <button class="btn btn-default" type="button" @click="sendText(inputText)">SendText</button>
+            </span>
+          </div>
         </div>
         <!-- /input-group -->
+        <div style="display: none">
+          <form class="form-inline">
+            <div class="form-group">
+              <button type="button" class="btn btn-sm" @click="toggleRecord">
+                <span v-if="!record.running" class="color-red glyphicon glyphicon-record"></span>
+                <span v-if="record.running" class="color-red glyphicon glyphicon-stop"></span>
+                录制 <span v-text="record.prompt"></span> <span v-if="record.running">{{record.duration|formatDuration}}</span>
+              </button>
+              <input type="text" class="form-control input-sm" placeholder="Notes 备注">
+            </div>
+          </form>
+          <hr>
+          <div class="list-group">
+            <button v-for="r in records" type="button" @click="play(r)" style="height: 34px; padding: 7px 15px;" class="list-group-item">{{r.name}} camera.mp4 <span class="badge">2:12</span></button>
+          </div>
+          <div>
+            <video width="320" height="240" controls>
+              <source src="" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+            <div id="chart_div"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -121,9 +167,96 @@
   <!--<script src="//cdn.jsdelivr.net/jquery/3.1.1/jquery.min.js"></script>-->
   <script src="//cdn.jsdelivr.net/g/vue@2.1.10,jquery@3.1.1"></script>
   <script src="//cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script>
+    google.charts.load('current', {
+      packages: ['corechart', 'line']
+    });
+    google.charts.setOnLoadCallback(drawCrosshairs);
+
+    function drawCrosshairs() {
+      var data = new google.visualization.DataTable();
+      data.addColumn('number', 'X');
+      data.addColumn('number', 'Dogs');
+      data.addColumn('number', 'Cats');
+
+      data.addRows([
+        [0, 0, 0],
+        [1, 10, 5],
+        [2, 23, 15],
+        [3, 17, 9],
+        [4, 18, 10],
+        [5, 9, 5],
+        [6, 11, 3],
+        [7, 27, 19],
+        [8, 33, 25],
+        [9, 40, 32],
+        [11, 35, 27],
+        [12, 30, 22],
+        [13, 40, 32],
+        [14, 42, 34],
+        [15, 47, 39],
+        [16, 44, 36],
+        [17, 48, 40],
+        [18, 52, 44],
+        [19, 54, 46],
+        [20, 42, 34],
+        [21, 55, 47],
+        [22, 56, 48],
+        [23, 57, 49],
+        [24, 60, 52],
+        [25, 50, 42],
+        [26, 52, 44],
+        [27, 51, 43],
+        [28, 49, 41],
+        [29, 53, 45],
+        [30, 55, 47],
+        [31, 60, 52],
+        [32, 61, 53],
+        [33, 59, 51],
+        [34, 62, 54],
+        [35, 65, 57],
+        [36, 62, 54],
+        [37, 58, 50],
+        [38, 55, 47],
+        [39, 61, 53],
+        [40, 64, 56],
+        [41, 65, 57],
+        [42, 63, 55],
+        [43, 66, 58],
+      ]);
+
+      var options = {
+        hAxis: {
+          title: 'Time'
+        },
+        vAxis: {
+          title: 'Popularity'
+        },
+        colors: ['#a52714', '#097138'],
+        crosshair: {
+          color: '#000',
+          trigger: 'selection'
+        }
+      };
+
+      var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+
+      chart.draw(data, options);
+      chart.setSelection([{
+        row: 38,
+        column: 1
+      }]);
+      window.chart = chart;
+
+      chart.clearChart()
+
+    }
+  </script>
   <script>
     var app = new Vue({
       el: "#app",
+      // delimiters: ["[[", "]]"],
       data: {
         display: {
           width: 0,
@@ -134,7 +267,31 @@
         refreshCount: 0,
         sessionId: null,
         pageHidden: false,
+        current: 0,
         inputText: '',
+        wsAdmin: null,
+        record: {
+          running: false,
+          startTime: 0,
+          ticker: null,
+          duration: 0,
+          prompt: '',
+        },
+        records: [{
+          name: "20170603-test",
+        }]
+      },
+      filters: {
+        formatDuration: function(value) {
+          function pad2(number) {
+            return (number < 10 ? '0' : '') + number
+          }
+          var totalSeconds = Math.floor(value / 1000); //"00:00:00"
+          var mms = value % 1000;
+          var ms = totalSeconds % 60;
+          var mm = (totalSeconds - ms) / 60
+          return "" + pad2(mm) + " : " + pad2(ms);
+        }
       },
       mounted: function() {
         var self = this;
@@ -147,6 +304,7 @@
         this.refreshScreen();
         this.initTouchListener();
         this.initScreenSize();
+        this.initWebSocket();
         var self = this;
         $("#screen")[0].onload = function(e) {
           var nw = e.target.naturalWidth;
@@ -160,6 +318,65 @@
         }.bind(this);
       },
       methods: {
+        toggleRecord: function() {
+          var self = this;
+          if (!this.record.running) {
+            self.record.prompt = "启动中"
+            $.ajax({
+                url: "/api/v1/records",
+                method: "POST",
+              })
+              .done(function(ret) {
+                self.record.running = true;
+                self.record.prompt = "";
+                self.record.startTime = new Date().getTime();
+                self.record.ticker = setInterval(function() {
+                  self.record.duration = new Date().getTime() - self.record.startTime;
+                }.bind(self), 50);
+              })
+              .fail(function(ret) {
+                self.record.prompt = "录制启动失败，原因需要查看后台日志";
+              })
+          } else {
+            self.record.prompt = "结束中"
+            clearInterval(this.record.ticker)
+            $.ajax({
+                url: "/api/v1/records",
+                method: "DELETE",
+              })
+              .done(function(ret) {
+                self.record.running = false;
+                console.log(ret);
+                self.record.prompt = "";
+                var video = document.getElementsByTagName("video")[0];
+                video.src = "/recorddata/20170603-test/camera.mp4";
+                video.load();
+                video.play();
+              })
+              .fail(function(ret) {
+                self.record.prompt = "结束异常";
+              })
+          }
+        },
+        play: function(r) {
+          console.log(r.name);
+          var video = document.getElementsByTagName("video")[0];
+          video.src = "/recorddata/" + r.name + "/camera.mp4";
+          video.load();
+          video.play();
+        },
+        initWebSocket: function() {
+          this.wsAdmin = new WebSocket(location.protocol.replace("http", "ws") + "//" + location.host + "/ws/admin");
+          this.wsAdmin.onmessage = function(evt) {
+            this.current = parseFloat(evt.data);
+          }.bind(this)
+          this.wsAdmin.onopen = function() {
+            // this.wsAdmin.send("current-on");
+          }.bind(this)
+          this.wsAdmin.onclose = function() {
+            console.log("Connection is closed")
+          }
+        },
         tap: function(x, y) {
           var self = this;
           return $.ajax({
@@ -170,7 +387,25 @@
               y: y
             }),
           }).then(function(ret) {
-            if (ret.status === 6) {
+            if (ret.status !== 0) {
+              console.log(ret.value);
+            } else {
+              return "Success";
+            }
+          })
+        },
+        tapHold: function(x, y, duration) {
+          var self = this;
+          return $.ajax({
+            url: "/session/" + self.sessionId + "/wda/touchAndHold",
+            method: "POST",
+            data: JSON.stringify({
+              x: x,
+              y: y,
+              duration: duration / 1000, // unit second
+            }),
+          }).then(function(ret) {
+            if (ret.status !== 0) {
               console.log(ret.value);
             } else {
               return "Success";
@@ -227,7 +462,7 @@
             }.bind(this))
             .fail(function(ret) {
               console.log("load screen failed", ret)
-              alert("Load screen failed");
+                // alert("Load screen failed");
             })
         },
         initScreenSize: function() {
@@ -252,7 +487,9 @@
             bounds: {},
             firstPosition: {},
             secondPosition: {},
+            beginTime: null,
           }
+          var _longClickTimeout = 800;
 
           function calculateBounds() {
             var el = element;
@@ -269,7 +506,7 @@
           }
 
           function deactiveFinger(index) {
-            $(".finger-" + index).removeClass("active")
+            $(".finger-" + index).removeClass("active").removeClass("longClick")
           }
 
           function convertPosition(event) {
@@ -306,14 +543,22 @@
             var first = screen.firstPosition,
               second = screen.secondPosition;
 
+            screen.secondPosition = {};
             element.style.cursor = 'not-allowed'
+            clearTimeout(screen.longClickKey);
             var defer;
-            if (second && second.x) {
+            if (second && (second.x || second.y)) {
               console.log("Swipe", first, second);
               defer = self.swipe(first.x, first.y, second.x, second.y);
             } else {
-              console.log("Tap", first);
-              defer = self.tap(first.x, first.y)
+              var holdTime = new Date().getTime() - screen.beginTime;
+              if (holdTime > _longClickTimeout) {
+                console.log("LongTap", first);
+                defer = self.tapHold(first.x, first.y, holdTime)
+              } else {
+                console.log("Tap", first);
+                defer = self.tap(first.x, first.y)
+              }
             }
             defer.then(function() {
               console.log("Release operation")
@@ -332,10 +577,12 @@
                 x: p.x,
                 y: p.y
               };
+              console.log(p);
               $(".finger-1")
                 .addClass("active")
                 .css("transform", 'translate3d(' + p.pageX + 'px,' + p.pageY + 'px,0)')
             } else {
+              deactiveFinger("1");
               screen.secondPosition = {};
             }
           }
@@ -350,6 +597,11 @@
               .addClass("active")
               .css("transform", 'translate3d(' + p.pageX + 'px,' + p.pageY + 'px,0)')
 
+            screen.longClickKey = setTimeout(function() {
+              $(".finger-0").addClass("longClick");
+            }, _longClickTimeout)
+
+            screen.beginTime = new Date().getTime();
             screen.firstPosition = {
               x: p.x,
               y: p.y

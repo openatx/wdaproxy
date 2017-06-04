@@ -13,9 +13,18 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"github.com/openatx/wdaproxy/connector"
 	"github.com/openatx/wdaproxy/web"
 	"github.com/qiniu/log"
+)
+
+var (
+	upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+	koardPower = NewKoardPower("/dev/tty.usbmodem1471")
 )
 
 func init() {
@@ -40,6 +49,7 @@ func init() {
 	})
 
 	rt.PathPrefix("/res/").Handler(http.StripPrefix("/res/", http.FileServer(web.Assets)))
+	rt.PathPrefix("/recorddata/").Handler(http.StripPrefix("/recorddata/", http.FileServer(http.Dir("./recorddata"))))
 
 	rt.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		favicon, _ := web.Assets.Open("images/favicon.ico")
@@ -137,6 +147,83 @@ func v1Rounter(rt *mux.Router) {
 			"value":       string(output),
 		})
 	}).Methods("POST")
+
+	rt.HandleFunc("/ws/admin", func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Println("upgrade to websocket error:", err)
+			return
+		}
+		defer conn.Close()
+
+		wchan := make(chan string)
+		go func() {
+			for m := range wchan {
+				conn.WriteMessage(websocket.TextMessage, []byte(m))
+			}
+		}()
+
+		// unit: mA
+		powerHook := func(current float32) error {
+			wchan <- fmt.Sprintf("%.2f", current)
+			return nil
+		}
+		defer func() {
+			koardPower.RemoveListener(&powerHook)
+			close(wchan)
+		}()
+
+		for {
+			mtype, p, err := conn.ReadMessage()
+			log.Println(mtype, string(p), err)
+			switch string(p) {
+			case "current-on":
+				koardPower.AddListener(&powerHook)
+			case "current-off":
+				koardPower.RemoveListener(&powerHook)
+			}
+			if string(p) == "hello" {
+				wchan <- "world"
+			}
+		}
+	})
+
+	rt.HandleFunc("/api/v1/records", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		if r.Method == "POST" {
+			os.MkdirAll("./recorddata/20170603-test", 0755)
+			err := launchXrecord("./recorddata/20170603-test/camera.mp4")
+			if err != nil {
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success":     false,
+					"description": "Launch xrecord failed: " + err.Error(),
+				})
+			} else {
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success":     true,
+					"description": "Record started",
+				})
+			}
+		} else {
+			if xrecordCmd != nil && xrecordCmd.Process != nil {
+				xrecordCmd.Process.Signal(os.Interrupt)
+			}
+			select {
+			case <-GoFunc(xrecordCmd.Wait):
+			case <-time.After(5 * time.Second):
+				xrecordCmd.Process.Kill()
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success":     false,
+					"description": "xrecord handle Ctrl-C longer than 5 second",
+				})
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success":     true,
+				"description": "Record stopped",
+			})
+		}
+	}).Methods("POST", "DELETE")
 }
 
 func mockIOSProvider() {
@@ -169,4 +256,25 @@ func mockIOSProvider() {
 			})
 		}
 	}).Methods("POST", "DELETE")
+}
+
+var xrecordCmd *exec.Cmd
+
+func launchXrecord(output string) error {
+	rpath, err := exec.LookPath("xrecord")
+	if err != nil {
+		return err
+	}
+	xrecordCmd = exec.Command(rpath, "-i", "0x14100000046d082d", "-o", output, "-f")
+	xrecordCmd.Stdout = os.Stdout
+	xrecordCmd.Stderr = os.Stderr
+	return xrecordCmd.Start()
+}
+
+func GoFunc(f func() error) chan error {
+	errc := make(chan error)
+	go func() {
+		errc <- f()
+	}()
+	return errc
 }
