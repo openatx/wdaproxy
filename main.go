@@ -143,7 +143,7 @@ func main() {
 		}
 		errC <- c.Run()
 	}()
-	go func() {
+	go func(udid string) {
 		if pWda == "" {
 			return
 		}
@@ -194,7 +194,7 @@ func main() {
 			}
 			lineStr = "" // reset str
 		}
-	}()
+	}(udid)
 
 	log.Printf("Open webbrower with http://%s:%d", LocalIP(), lisPort)
 	log.Fatal(<-errC)

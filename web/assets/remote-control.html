@@ -304,7 +304,6 @@
         this.refreshScreen();
         this.initTouchListener();
         this.initScreenSize();
-        this.initWebSocket();
         var self = this;
         $("#screen")[0].onload = function(e) {
           var nw = e.target.naturalWidth;
@@ -364,18 +363,6 @@
           video.src = "/recorddata/" + r.name + "/camera.mp4";
           video.load();
           video.play();
-        },
-        initWebSocket: function() {
-          this.wsAdmin = new WebSocket(location.protocol.replace("http", "ws") + "//" + location.host + "/ws/admin");
-          this.wsAdmin.onmessage = function(evt) {
-            this.current = parseFloat(evt.data);
-          }.bind(this)
-          this.wsAdmin.onopen = function() {
-            // this.wsAdmin.send("current-on");
-          }.bind(this)
-          this.wsAdmin.onclose = function() {
-            console.log("Connection is closed")
-          }
         },
         tap: function(x, y) {
           var self = this;

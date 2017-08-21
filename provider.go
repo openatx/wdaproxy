@@ -24,7 +24,6 @@ var (
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
-	koardPower = NewKoardPower("/dev/tty.usbmodem1471")
 )
 
 func init() {
@@ -147,46 +146,6 @@ func v1Rounter(rt *mux.Router) {
 			"value":       string(output),
 		})
 	}).Methods("POST")
-
-	rt.HandleFunc("/ws/admin", func(w http.ResponseWriter, r *http.Request) {
-		conn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			log.Println("upgrade to websocket error:", err)
-			return
-		}
-		defer conn.Close()
-
-		wchan := make(chan string)
-		go func() {
-			for m := range wchan {
-				conn.WriteMessage(websocket.TextMessage, []byte(m))
-			}
-		}()
-
-		// unit: mA
-		powerHook := func(current float32) error {
-			wchan <- fmt.Sprintf("%.2f", current)
-			return nil
-		}
-		defer func() {
-			koardPower.RemoveListener(&powerHook)
-			close(wchan)
-		}()
-
-		for {
-			mtype, p, err := conn.ReadMessage()
-			log.Println(mtype, string(p), err)
-			switch string(p) {
-			case "current-on":
-				koardPower.AddListener(&powerHook)
-			case "current-off":
-				koardPower.RemoveListener(&powerHook)
-			}
-			if string(p) == "hello" {
-				wchan <- "world"
-			}
-		}
-	})
 
 	rt.HandleFunc("/api/v1/records", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
