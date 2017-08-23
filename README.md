@@ -57,10 +57,24 @@ $ curl -X GET http://localhost:8100/api/v1/packages
 ```
 
 # For developer
-Update golang vendor
+First checkout this repository
+
+```bash
+git clone https://github.com/openatx/wdaproxy $GOPATH/src/github.com/openatx/wdaproxy
+cd $GOPATH/src/github.com/openatx/wdaproxy
 ```
+
+Update golang vendor
+```bash
 brew install glide
 glide up
+```
+
+Package web resources into binary
+
+```bash
+go generate ./web
+go build -tags vfs
 ```
 
 # LICENSE
