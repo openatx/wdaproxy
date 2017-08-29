@@ -37,6 +37,7 @@ var (
 	debug          bool
 
 	rt = mux.NewRouter()
+	udidNames = map[string]string{}
 )
 
 type statusResp struct {
@@ -147,6 +148,12 @@ func main() {
 		if pWda == "" {
 			return
 		}
+		// device name
+		nameBytes, _ := exec.Command("idevicename", "-u", udid).Output()
+		deviceName := strings.TrimSpace(string(nameBytes))
+		udidNames[udid] = deviceName
+		log.Printf("device name: %s", deviceName)
+
 		log.Printf("launch WebDriverAgent(dir=%s)", pWda)
 		c := exec.Command("xcodebuild",
 			"-verbose",

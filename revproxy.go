@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	// "fmt"
 )
 
 type transport struct {
@@ -36,7 +37,10 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 			return nil, err
 		}
 		resp.Body.Close()
-		jsonResp.Value["udid"] = udid
+		jsonResp.Value["device"] = map[string]interface{}{
+			"udid": udid,
+			"name": udidNames[udid],
+		}
 		data, _ := json.Marshal(jsonResp)
 		// update body and fix length
 		resp.Body = ioutil.NopCloser(bytes.NewReader(data))
