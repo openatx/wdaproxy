@@ -22,7 +22,7 @@
   <h1>Packages</h1>
   <div id="app">
     <li v-for="v in pkgs">
-      {{v.name}}
+      {{v.name}} <input v-model="v.bundleId">
       <button :disabled="v.busy" v-on:click="uninstall(v)">
         Uninstall
         <span v-if="v.busy">ing...</span>

@@ -36,7 +36,7 @@ var (
 	yosemiteGroup  string
 	debug          bool
 
-	rt = mux.NewRouter()
+	rt        = mux.NewRouter()
 	udidNames = map[string]string{}
 )
 
@@ -98,12 +98,12 @@ func main() {
 	flag.StringVarP(&pWda, "wda", "W", "", "WebDriverAgent project directory [optional]")
 	flag.BoolVarP(&debug, "debug", "d", false, "Open debug mode")
 
-	flag.StringVarP(&yosemiteServer, "yosemite-server", "S",
-		os.Getenv("YOSEMITE_SERVER"),
-		"server center(not open source yet")
-	flag.StringVarP(&yosemiteGroup, "yosemite-group", "G",
-		"everyone",
-		"server center group")
+	// flag.StringVarP(&yosemiteServer, "yosemite-server", "S",
+	// 	os.Getenv("YOSEMITE_SERVER"),
+	// 	"server center(not open source yet")
+	// flag.StringVarP(&yosemiteGroup, "yosemite-group", "G",
+	// 	"everyone",
+	// 	"server center group")
 	flag.Parse()
 	if udid == "" {
 		udid = getUdid()
@@ -119,9 +119,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if yosemiteServer != "" {
-		mockIOSProvider()
-	}
+	// if yosemiteServer != "" {
+	// 	mockIOSProvider()
+	// }
 
 	errC := make(chan error)
 	freePort, err := freeport.Get()
@@ -133,6 +133,7 @@ func main() {
 	go func() {
 		log.Printf("launch tcp-proxy, listen on %d", lisPort)
 		targetURL, _ := url.Parse("http://127.0.0.1:" + strconv.Itoa(freePort))
+		rt.HandleFunc("/wd/hub/{path:.*}", NewAppiumProxyHandlerFunc(targetURL))
 		rt.HandleFunc("/{path:.*}", NewReverseProxyHandlerFunc(targetURL))
 		errC <- http.Serve(lis, accesslog.NewLoggingHandler(rt, HTTPLogger{}))
 	}()
@@ -159,7 +160,7 @@ func main() {
 			"-verbose",
 			"-project", "WebDriverAgent.xcodeproj",
 			"-scheme", "WebDriverAgentRunner",
-			"-destination", "id="+udid, "test")
+			"-destination", "id="+udid, "test-without-building") // test-without-building
 		c.Dir, _ = filepath.Abs(pWda)
 		// Test Suite 'All tests' started at 2017-02-27 15:55:35.263
 		// Test Suite 'WebDriverAgentRunner.xctest' started at 2017-02-27 15:55:35.266

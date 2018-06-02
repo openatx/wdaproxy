@@ -12,4 +12,4 @@ brew:
     name: homebrew-tap
   folder: Formula
   dependencies:
-    - libimobiledevice
+    - usbmuxd
