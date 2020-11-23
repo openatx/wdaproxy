@@ -11,7 +11,7 @@ import (
 	"github.com/codeskyblue/muuid"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
-	qlog "github.com/qiniu/log"
+	qlog "github.com/gobuild/log"
 )
 
 var log = qlog.New(os.Stdout, "", qlog.Llevel|qlog.Lshortfile|qlog.LstdFlags)

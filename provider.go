@@ -16,7 +16,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/openatx/wdaproxy/connector"
 	"github.com/openatx/wdaproxy/web"
-	"github.com/qiniu/log"
+	"github.com/gobuild/log"
 )
 
 var (

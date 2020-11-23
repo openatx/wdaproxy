@@ -15,11 +15,11 @@ import (
 	"strings"
 
 	"github.com/facebookgo/freeport"
+	"github.com/gobuild/log"
 	"github.com/gorilla/mux"
 	accesslog "github.com/mash/go-accesslog"
 	flag "github.com/ogier/pflag"
 	"github.com/openatx/wdaproxy/web"
-	"github.com/qiniu/log"
 	_ "github.com/shurcooL/vfsgen"
 )
 
