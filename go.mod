@@ -11,7 +11,6 @@ require (
 	github.com/mash/go-accesslog v1.2.0
 	github.com/ogier/pflag v0.0.1
 	github.com/pkg/errors v0.9.1
-	github.com/qiniu/log v0.0.0-00010101000000-000000000000 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546

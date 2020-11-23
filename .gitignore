@@ -28,3 +28,6 @@ _testmain.go
 *.zip
 wdaproxy
 assets_vfsdata.go
+
+go.sum
+dist/

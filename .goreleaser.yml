@@ -1,0 +1,26 @@
+# This is an example goreleaser.yaml file with some sane defaults.
+# Make sure to check the documentation at http://goreleaser.com
+before:
+  hooks:
+    # you may remove this if you don't use vgo
+    - go mod tidy
+    # you may remove this if you don't need go generate
+    - go generate ./web
+builds:
+  - env:
+    - CGO_ENABLED=0
+    main: .
+    flags:
+      - -tags=vfs
+    goos:
+      - darwin
+    goarch:
+      - amd64
+brews:
+  - 
+    tap:
+      owner: openatx
+      name: homebrew-tap
+    folder: Formula
+    dependencies:
+      - name: usbmuxd
